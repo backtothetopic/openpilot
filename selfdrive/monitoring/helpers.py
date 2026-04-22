@@ -326,6 +326,9 @@ class DriverMonitoring:
 
   def _update_events(self, driver_engaged, op_engaged, standstill, wrong_gear, car_speed):
     self._reset_events()
+    # DM disabled: short-circuit so no driverDistracted/driverUnresponsive/tooDistracted events
+    # are ever raised. Pipeline keeps running so downstream consumers don't break.
+    return
     # Block engaging until ignition cycle after max number or time of distractions
     if self.terminal_alert_cnt >= self.settings._MAX_TERMINAL_ALERTS or \
        self.terminal_time >= self.settings._MAX_TERMINAL_DURATION:
