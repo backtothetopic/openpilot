@@ -374,6 +374,16 @@ def longitudinal_maneuver_alert(CP: car.CarParams, CS: car.CarState, sm: messagi
 
 
 def personality_changed_alert(CP: car.CarParams, CS: car.CarState, sm: messaging.SubMaster, metric: bool, soft_disable_time: int, personality) -> Alert:
+  # Tesla distance knob: show the physical knob position (1..7) instead of the
+  # openpilot personality name, since the knob is the sole source of truth here.
+  if CP.brand == "tesla":
+    try:
+      from openpilot.common.params import Params
+      lvl = int(Params().get("TeslaGapLevel", return_default=True) or 3)
+      lvl = max(0, min(6, lvl)) + 1  # 1..7 for display
+    except Exception:
+      lvl = 4
+    return NormalPermanentAlert(f"Follow Distance: {lvl}/7", duration=1.5)
   personality = str(personality).title()
   return NormalPermanentAlert(f"Driving Personality: {personality}", duration=1.5)
 
