@@ -31,6 +31,14 @@ DESCRIPTIONS = {
   'RecordFront': tr_noop("Upload data from the driver facing camera and help improve the driver monitoring algorithm."),
   "IsMetric": tr_noop("Display speed in km/h instead of mph."),
   "RecordAudio": tr_noop("Record and store microphone audio while driving. The audio will be included in the dashcam video in comma connect."),
+  "AutoLaneChangeTimer": tr_noop(
+    "Set a timer to delay the auto lane change operation when the blinker is used. " +
+    "No nudge on the steering wheel is required to auto lane change if a timer is set. Default is Nudge.<br>" +
+    "Please use caution when using this feature. Only use the blinker when traffic and road conditions permit."
+  ),
+  "AutoLaneChangeBsmDelay": tr_noop(
+    "Adds a 1 second delay before changing lanes if Blind Spot Monitoring detects a vehicle in the target lane during the wait."
+  ),
 }
 
 
@@ -63,6 +71,12 @@ class TogglesLayout(Widget):
       "IsLdwEnabled": (
         lambda: tr("Enable Lane Departure Warnings"),
         DESCRIPTIONS["IsLdwEnabled"],
+        "warning.png",
+        False,
+      ),
+      "AutoLaneChangeBsmDelay": (
+        lambda: tr("Auto Lane Change: Delay with Blind Spot"),
+        DESCRIPTIONS["AutoLaneChangeBsmDelay"],
         "warning.png",
         False,
       ),
@@ -102,6 +116,26 @@ class TogglesLayout(Widget):
       icon="speed_limit.png"
     )
 
+    # Auto Lane Change selector. AutoLaneChangeTimer is INT in [-1..5]; UI button index is 0..6.
+    alc_raw = self._params.get("AutoLaneChangeTimer", return_default=True)
+    alc_idx = (int(alc_raw) if alc_raw is not None else 0) + 1  # shift -1..5 -> 0..6
+    alc_idx = max(0, min(6, alc_idx))
+    self._auto_lane_change_setting = multiple_button_item(
+      lambda: tr("Auto Lane Change by Blinker"),
+      lambda: tr(DESCRIPTIONS["AutoLaneChangeTimer"]),
+      buttons=[lambda: tr("Off"),
+               lambda: tr("Nudge"),
+               lambda: tr("Now"),
+               lambda: f"0.5{tr('s')}",
+               lambda: f"1{tr('s')}",
+               lambda: f"2{tr('s')}",
+               lambda: f"3{tr('s')}"],
+      button_width=90,
+      callback=self._set_auto_lane_change_timer,
+      selected_index=alc_idx,
+      icon="warning.png"
+    )
+
     self._toggles = {}
     self._locked_toggles = set()
     for param, (title, desc, icon, needs_restart) in self._toggle_defs.items():
@@ -134,6 +168,11 @@ class TogglesLayout(Widget):
       # insert longitudinal personality after NDOG toggle
       if param == "DisengageOnAccelerator":
         self._toggles["LongitudinalPersonality"] = self._long_personality_setting
+
+      # insert Auto Lane Change selector after Lane Departure Warning toggle.
+      # The BsmDelay toggle is already added through the regular toggle loop.
+      if param == "IsLdwEnabled":
+        self._toggles["AutoLaneChangeTimer"] = self._auto_lane_change_setting
 
     self._update_experimental_mode_icon()
     self._scroller = Scroller(list(self._toggles.values()), line_separator=True, spacing=0)
@@ -243,3 +282,7 @@ class TogglesLayout(Widget):
 
   def _set_longitudinal_personality(self, button_index: int):
     self._params.put("LongitudinalPersonality", button_index)
+
+  def _set_auto_lane_change_timer(self, button_index: int):
+    # UI button index 0..6 -> param value -1..5 (Off, Nudge, Now, 0.5s, 1s, 2s, 3s)
+    self._params.put("AutoLaneChangeTimer", button_index - 1)
