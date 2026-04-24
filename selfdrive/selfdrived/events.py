@@ -379,8 +379,10 @@ def personality_changed_alert(CP: car.CarParams, CS: car.CarState, sm: messaging
   if CP.brand == "tesla":
     try:
       from openpilot.common.params import Params
-      lvl = int(Params().get("TeslaGapLevel", return_default=True) or 3)
-      lvl = max(0, min(6, lvl)) + 1  # 1..7 for display
+      raw = Params().get("TeslaGapLevel", return_default=True)
+      # NOTE: `or` fallback doesn't work here because level 1 (idx 0) is falsy.
+      idx = int(raw) if raw is not None else 3
+      lvl = max(0, min(6, idx)) + 1  # 1..7 for display
     except Exception:
       lvl = 4
     return NormalPermanentAlert(f"Follow Distance: {lvl}/7", duration=1.5)
