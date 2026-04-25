@@ -71,11 +71,13 @@ def get_jerk_factor(personality=log.LongitudinalPersonality.standard):
 
 
 # Tesla distance-knob: 7-level follow-distance table driven by TeslaGapLevel param.
-# Level 1 (idx 0) is tight — approximates stock Tesla AP1 level 1 after STOP_DISTANCE offset.
-# Level 7 (idx 6) equals stock openpilot Standard (1.45s).
-# Note: actual highway headway ≈ t_follow + STOP_DISTANCE/v_ego.
-# Stop-and-go behavior scales naturally with speed since these are time-based.
-_TESLA_GAP_T_FOLLOW = [0.75, 0.87, 1.00, 1.12, 1.24, 1.35, 1.45]
+# Tuned tighter than stock openpilot personalities to match the AP1 feel Jonas wants.
+# Level 1 (idx 0) = 0.60s — very tight, well below comma "Aggressive" (1.25s).
+# Level 4 (idx 3) = 1.00s — middle detent, "normal" steady-state gap.
+# Level 7 (idx 6) = 1.35s — between comma Aggressive and Standard.
+# Note: actual highway headway ≈ t_follow + STOP_DISTANCE/v_ego (adds ~0.2s at 65 mph).
+# Emergency braking is unaffected — the v²/(2·COMFORT_BRAKE) term stays in the MPC.
+_TESLA_GAP_T_FOLLOW = [0.60, 0.73, 0.87, 1.00, 1.13, 1.25, 1.35]
 
 # Lazy singleton so importing this module doesn't require the Params DB to exist at import time
 _tesla_params = None
